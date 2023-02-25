@@ -1,21 +1,74 @@
-const faker = require("faker");
-const appRouter = function(app) {
-  const recipes = require("./recipes-controller.js");
+const express = require("express");
+let  User = require("../models/User")
+let router = express.Router();
+const bcrypt = require("bcrypt")
+const jwt = require("jsonwebtoken")
 
- 
-  app.post("/recipes", recipes.create);
+router.post("/signup", async(req,res)=>{
+    try{
+        console.log(req.body);
+        let {email, password , repeat_password} = req.body
+        let user = await User.findOne({email:email})
+        if(user){
+            console.log(user);
+            return res.json({
+                error:"User Already Exists"
+            })
+        }
+        if(password!==repeat_password){
+            return res.json({
+                error: "Password and Repeat Password Does not match"
+            })
+        }
 
-  
-  app.get("/recipes", recipes.findAll);
+        user = await User.create({email, password, repeat_password})
+        res.json({
+            message:"Account Created Succesfully"
+        })
 
-  
-  app.get("/recipes/:recipeID", recipes.findOne);
+       
+    }
+    catch(error){
+        console.log("Error in signup", error);
+        res.json({
+            error:error.message
+        })
+    }
+})
 
-  
-  app.put("/recipes/:recipeID", recipes.update);
 
+router.post("/signin", async(req,res)=>{
+    try{
+        // console.log(req.body);
+        let {email, password } = req.body
+        let user = await User.findOne({email:email})
+        if(!user){
+            console.log(user);
+            return res.json({
+                error:"User Doest Not Exists"
+            })
+        }
+        if(user.password!==password){
+            return res.json({
+                error: "Incorrect  Password"
+            })
+        }
 
-  app.delete("/recipes/:recipeID", recipes.delete);
-};
+       const token = jwt.sign({_id:user._id}, process.env.JWT_SECRET)
+        res.json({
+            user,token,
+            message:"Logged In Succesfully"
+            
+        })
 
-module.exports = appRouter;
+       
+    }
+    catch(error){
+        // console.log("Error in signup", error);
+        res.json({
+            error:error.message
+        })
+    }
+})
+
+module.exports = router
